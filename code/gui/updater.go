@@ -18,7 +18,7 @@ import (
 )
 
 // defaultUpdateRepo 可配置为 "owner/repo"（GitHub 仓库）或直接指向 version.json 的 URL
-const defaultUpdateRepo = ""
+const defaultUpdateRepo = "santian666/Bill-MCN"
 
 type UpdateConfig struct {
 	Repo string `json:"repo"`
