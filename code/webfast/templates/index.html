@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{.Title}}</title>
+  <link rel="stylesheet" href="/static/app.css?v=20260601-manual-ui">
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-left">
+      <div class="brand">账单系统</div>
+      <nav class="main-nav">
+        <a class="nav-item active" href="/">账单统计</a>
+        <a id="ordersPageBtn" class="nav-item" href="/orders">订单明细</a>
+      </nav>
+    </div>
+    <div class="topbar-metrics">
+      <span>已结算 <strong id="totalIncome"></strong></span>
+      <span>订单总数 <strong id="orderCount"></strong></span>
+      <span>账号 <strong id="talentCount"></strong></span>
+    </div>
+    <div class="topbar-right">
+      <div class="top-import">
+        <span class="top-import-title">账单导入</span>
+        <select id="countrySelect"></select>
+        <input id="billFile" type="file" accept=".xlsx,.csv,.tsv,.txt">
+        <button id="importBtn" class="primary">导入账单</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="layout">
+    <section class="top">
+      <aside class="sidebar">
+        <div class="block filter-block">
+          <h2>筛选</h2>
+          <div class="date-grid">
+            <div>
+              <label>开始时间</label>
+              <input id="startDate" type="date">
+            </div>
+            <div>
+              <label>结束时间</label>
+              <input id="endDate" type="date">
+            </div>
+          </div>
+          <div class="field settlement-field">
+            <label>订单结算状态</label>
+            <select id="settlementStatus"></select>
+          </div>
+          <div class="manual-grid">
+            <div class="field">
+              <label>多个账号</label>
+              <textarea id="manualUsers" placeholder="一行一个，或用逗号分隔"></textarea>
+            </div>
+            <div class="side-actions">
+              <button id="manualSearchBtn" class="primary">统计</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="block">
+          <div class="block-head">
+            <h2>员工管理</h2>
+            <div class="head-actions">
+              <button id="statCheckedBtn" class="small-add-btn" title="统计勾选范围">统计</button>
+              <button id="addCompanyBtn" class="small-add-btn" title="新增公司">+ 新增公司</button>
+            </div>
+          </div>
+          <div id="tree" class="tree"></div>
+        </div>
+      </aside>
+
+      <section class="results">
+        <div class="toolbar">
+          <div>
+            <h1 id="resultTitle">筛选结果</h1>
+            <p id="resultHint"></p>
+          </div>
+          <div class="export-area">
+            <div class="export-stats">
+              <span>总订单数 <strong id="exportOrderCount"></strong></span>
+              <span>总结算金额 <strong id="exportIncome"></strong></span>
+            </div>
+            <button id="exportSummaryBtn" disabled>导出筛选结果</button>
+            <button id="exportOrdersBtn" disabled>导出订单详情</button>
+            <button id="exportBothBtn" disabled>导出两者</button>
+          </div>
+        </div>
+        <div id="statusStats" class="status-stats"></div>
+        <div class="summary">
+          <table>
+            <thead>
+              <tr><th>账号</th><th>已结算</th><th>客户未付款</th><th>待确认</th><th>不符合条件</th><th>已冻结</th><th>订单数</th></tr>
+            </thead>
+            <tbody id="summaryBody"><tr><td colspan="7"></td></tr></tbody>
+          </table>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <div id="toast" class="toast"></div>
+  <div id="inputModal" class="modal-mask" aria-hidden="true">
+    <div class="modal small-modal">
+      <div class="modal-head">
+        <h2 id="inputModalTitle">输入</h2>
+        <button id="closeInputModalBtn" class="icon-btn" type="button">×</button>
+      </div>
+      <textarea id="inputModalText" placeholder="一行一个"></textarea>
+      <div class="modal-actions">
+        <button id="cancelInputModalBtn" type="button">取消</button>
+        <button id="confirmInputModalBtn" class="primary" type="button">确定</button>
+      </div>
+    </div>
+  </div>
+  <div id="treeMenu" class="context-menu">
+    <button id="editTreeItemBtn" type="button">编辑</button>
+    <button id="deleteTreeItemBtn" type="button">删除</button>
+  </div>
+  <div id="statModal" class="modal-mask" aria-hidden="true">
+    <div class="modal small-modal">
+      <div class="modal-head">
+        <h2 id="statModalTitle">统计筛选</h2>
+        <button id="closeStatModalBtn" class="icon-btn" type="button">×</button>
+      </div>
+      <div class="date-grid">
+        <div>
+          <label>开始时间</label>
+          <input id="statStartDate" type="date">
+        </div>
+        <div>
+          <label>结束时间</label>
+          <input id="statEndDate" type="date">
+        </div>
+      </div>
+      <div class="field settlement-field">
+        <label>订单结算状态</label>
+        <select id="statSettlementStatus"></select>
+      </div>
+      <div class="modal-actions">
+        <button id="cancelStatModalBtn" type="button">取消</button>
+        <button id="confirmStatModalBtn" class="primary" type="button">统计</button>
+      </div>
+    </div>
+  </div>
+  <script src="/static/app.js?v=20260601-export-xlsx"></script>
+</body>
+</html>

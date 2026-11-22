@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{.Title}}</title>
+  <link rel="stylesheet" href="/static/app.css?v=20260601-custom-confirm">
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-left">
+      <div class="brand">账单系统</div>
+      <nav class="main-nav">
+        <a class="nav-item" href="/">账单统计</a>
+        <a class="nav-item active" href="/orders">订单明细</a>
+      </nav>
+    </div>
+    <div class="topbar-right">
+      <div class="orders-export-area">
+        <div class="export-stats">
+          <span>总订单数 <strong id="ordersExportCount">0</strong></span>
+          <span>总结算金额 <strong id="ordersExportIncome">0.00</strong></span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="orders-main">
+    <section class="orders-filter">
+      <div class="field">
+        <label>国家</label>
+        <select id="detailCountry"></select>
+      </div>
+      <div class="field">
+        <label>开始时间</label>
+        <input id="detailStart" type="date">
+      </div>
+      <div class="field">
+        <label>结束时间</label>
+        <input id="detailEnd" type="date">
+      </div>
+      <div class="field">
+        <label>订单结算状态</label>
+        <select id="detailSettlementStatus"></select>
+      </div>
+      <div class="field wide">
+        <label>账号</label>
+        <input id="detailUsers" readonly placeholder="点击输入多个账号">
+      </div>
+      <button id="searchOrdersBtn" class="primary">查询</button>
+      <button id="exportOrdersBtn" class="primary">导出</button>
+      <button id="deleteAllOrdersBtn" class="danger-btn">删除全部</button>
+      <button id="deleteFilteredOrdersBtn" class="danger-btn">按条件删除</button>
+      <div class="orders-filter-meta">
+        <span id="ordersFilterRange">时间范围：-</span>
+        <div id="ordersStatusStats" class="status-stats compact"></div>
+      </div>
+    </section>
+
+    <section class="details orders-detail">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>订单 ID</th><th>SKU ID</th><th>商品 ID</th><th>商品名称</th><th>商品价格</th>
+              <th>下单件数</th><th>订单结算状态</th><th>账号</th><th>标准佣金率</th><th>店铺广告佣金率</th>
+              <th>佣金 GMV</th><th>预计基础佣金</th><th>预计标准佣金</th><th>佣金基数</th>
+              <th>标准佣金</th><th>分成前的达人收益</th><th>代理机构佣金分成比例</th>
+              <th>达人总收益</th><th>代理机构税前总收益</th><th>代理机构总收益</th>
+              <th>Invitation ID</th><th>创建时间</th><th>订单送达时间</th><th>付款 ID</th><th>付款状态</th>
+            </tr>
+          </thead>
+          <tbody id="detailOrdersBody"><tr><td colspan="25">暂无数据</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="pager">
+      <div class="pager-left">
+        <span>每页</span>
+        <select id="pageSize">
+          <option value="100">100</option>
+          <option value="500">500</option>
+          <option value="1000">1000</option>
+        </select>
+        <span id="ordersTotal">共 0 条</span>
+        <span class="pager-divider"></span>
+        <span id="ordersShown">当前显示：0 / 0</span>
+        <span id="ordersIncome">代理机构总收益 0.00</span>
+      </div>
+      <div class="pager-right">
+        <span id="ordersRange">第 0 / 0 页</span>
+        <button id="prevPageBtn">上一页</button>
+        <div id="pageButtons" class="page-buttons"></div>
+        <button id="nextPageBtn">下一页</button>
+      </div>
+    </section>
+  </main>
+
+  <div id="talentModal" class="modal-mask" aria-hidden="true">
+    <div class="modal">
+      <div class="modal-head">
+        <h2>账号</h2>
+        <button id="closeTalentModalBtn" class="icon-btn" type="button">×</button>
+      </div>
+      <textarea id="talentModalText" placeholder="一行一个账号"></textarea>
+      <div class="modal-actions">
+        <button id="clearTalentModalBtn" type="button">清空</button>
+        <button id="cancelTalentModalBtn" type="button">取消</button>
+        <button id="confirmTalentModalBtn" class="primary" type="button">确定</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="confirmModal" class="modal-mask" aria-hidden="true">
+    <div class="modal confirm-modal" role="dialog" aria-modal="true" aria-labelledby="confirmModalTitle">
+      <div class="modal-head">
+        <div class="confirm-title">
+          <span class="confirm-mark">!</span>
+          <h2 id="confirmModalTitle">确认操作</h2>
+        </div>
+        <button id="closeConfirmModalBtn" class="icon-btn" type="button">×</button>
+      </div>
+      <div class="confirm-content">
+        <p id="confirmModalMessage"></p>
+        <div id="confirmModalDetail" class="confirm-detail"></div>
+      </div>
+      <div class="modal-actions">
+        <button id="cancelConfirmModalBtn" type="button">取消</button>
+        <button id="confirmConfirmModalBtn" class="danger-solid" type="button">确定</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast"></div>
+  <script src="/static/orders.js?v=20260601-custom-confirm"></script>
+</body>
+</html>

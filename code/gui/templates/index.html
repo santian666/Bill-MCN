@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{.Title}}</title>
+  <link rel="stylesheet" href="/static/app.css?v=20260602-summary-head-full">
+</head>
+<body>
+  <div id="appFrame">
+  <header class="topbar">
+    <div class="topbar-left">
+      <nav class="main-nav">
+        <a class="nav-item active" href="/">账单统计</a>
+        <a id="ordersPageBtn" class="nav-item" href="/orders">订单明细</a>
+        <button id="checkUpdateBtn" class="nav-item nav-update-btn" type="button" title="检查并安装软件更新">检查更新</button>
+      </nav>
+    </div>
+    <div class="topbar-metrics">
+      <span>已结算 <strong id="totalIncome"></strong></span>
+      <span>总订单数 <strong id="orderCount"></strong></span>
+      <span>账号 <strong id="talentCount"></strong></span>
+    </div>
+    <div class="topbar-right">
+      <div class="top-import">
+        <span class="top-import-title">账单导入</span>
+        <select id="countrySelect"></select>
+        <input id="billFile" type="file" accept=".xlsx,.csv,.tsv,.txt" hidden>
+        <button id="selectBillFileBtn" type="button">选择文件</button>
+        <span id="selectedBillFileName" class="selected-file-name" title="未选择文件">未选择文件</span>
+        <button id="importBtn" class="primary">导入账单</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="layout">
+    <section class="top">
+      <aside class="sidebar">
+        <div class="block filter-block">
+          <h2>筛选</h2>
+          <div class="date-grid">
+            <div>
+              <label>开始时间</label>
+              <input id="startDate" type="date">
+            </div>
+            <div>
+              <label>结束时间</label>
+              <input id="endDate" type="date">
+            </div>
+          </div>
+          <div class="field settlement-field">
+            <label>订单结算状态</label>
+            <select id="settlementStatus"></select>
+          </div>
+          <div class="field settlement-field country-filter-field">
+            <label>国家</label>
+            <select id="filterCountry"></select>
+          </div>
+          <div class="manual-grid">
+            <div class="field">
+              <label>多个账号</label>
+              <textarea id="manualUsers" placeholder="一行一个，或用逗号分隔"></textarea>
+            </div>
+            <div class="side-actions">
+              <button id="manualClearBtn" type="button">清空</button>
+              <button id="manualSearchBtn" class="primary">统计</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="block">
+          <div class="block-head">
+            <h2>员工管理</h2>
+            <div class="head-actions">
+              <button id="statCheckedBtn" class="small-add-btn" title="统计勾选范围">统计</button>
+              <button id="deleteCheckedBtn" class="small-add-btn danger-small-btn" title="删除勾选项">删除勾选</button>
+              <button id="addCompanyBtn" class="small-add-btn" title="新增公司">+ 新增公司</button>
+            </div>
+          </div>
+          <div id="tree" class="tree"></div>
+        </div>
+      </aside>
+
+      <section class="results">
+        <div class="toolbar">
+          <div>
+            <h1 id="resultTitle">筛选结果</h1>
+            <p id="resultHint"></p>
+          </div>
+          <div class="export-area">
+            <div class="export-stats">
+              <span>总订单数 <strong id="exportOrderCount"></strong></span>
+              <span>总结算金额 <strong id="exportIncome"></strong></span>
+            </div>
+            <button id="exportSummaryBtn" disabled>导出筛选结果</button>
+            <button id="exportOrdersBtn" disabled>导出订单详情</button>
+            <button id="exportBothBtn" disabled>导出两者</button>
+          </div>
+        </div>
+        <div id="statusStats" class="status-stats"></div>
+        <div class="agency-settle">
+          <span class="agency-title">机构结算</span>
+          <span class="agency-money">已结算 <strong id="agencyBase">￥ 0.00</strong></span>
+          <label class="agency-field"><span>美金</span><input id="usdRate" type="number" min="0" step="0.0001" placeholder="可空"></label>
+          <label class="agency-field"><span>人民币</span><input id="rmbRate" type="number" min="0" step="0.0001" placeholder="可空"></label>
+          <label class="agency-field agency-field-unit"><span>平台抽成</span><span class="input-unit"><input id="agencyCutRate" type="number" min="0" max="100" step="0.01" placeholder="可空"><em>%</em></span></label>
+          <label class="agency-field agency-field-unit"><span>手续费</span><span class="input-unit"><input id="feePermille" type="number" min="0" step="0.01" placeholder="可空"><em>‰</em></span></label>
+          <span class="agency-money">手续费 <strong id="agencyFee">￥ 0.00</strong></span>
+          <span class="agency-money agency-actual">实际结算 <strong id="agencyActual">￥ 0.00</strong></span>
+        </div>
+        <div class="summary">
+          <table>
+            <thead>
+              <tr>
+                <th title="账号">账号</th>
+                <th title="已结算">已结算</th>
+                <th title="机构未付款">机构未付款</th>
+                <th title="客户未付款">客户未付款</th>
+                <th title="待确认">待确认</th>
+                <th title="不符合条件">不符合条件</th>
+                <th title="已冻结">已冻结</th>
+                <th title="总订单数">总订单数</th>
+              </tr>
+            </thead>
+            <tbody id="summaryBody"><tr><td colspan="8" class="empty-cell">暂无筛选数据</td></tr></tbody>
+          </table>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <div id="toast" class="toast"></div>
+  <div id="importProgressModal" class="modal-mask import-progress-mask" aria-hidden="true">
+    <div class="modal import-progress-modal" role="dialog" aria-modal="true" aria-labelledby="importProgressTitle">
+      <div class="modal-head">
+        <div>
+          <h2 id="importProgressTitle">正在导入账单</h2>
+          <p id="importProgressSubTitle" class="progress-subtitle"></p>
+        </div>
+      </div>
+      <div class="progress-bar"><span id="importProgressBar"></span></div>
+      <div id="importProgressPhase" class="progress-phase">准备中</div>
+      <div class="progress-grid">
+        <div><span>已处理</span><strong id="importProgressProcessed">0</strong></div>
+        <div><span>新增</span><strong id="importProgressImported">0</strong></div>
+        <div><span>更新</span><strong id="importProgressUpdated">0</strong></div>
+        <div><span>跳过无变化</span><strong id="importProgressSkipped">0</strong></div>
+        <div><span>重复订单</span><strong id="importProgressDuplicate">0</strong></div>
+        <div><span>有变化</span><strong id="importProgressChanged">0</strong></div>
+      </div>
+      <p id="importProgressMessage" class="progress-message">正在处理，请不要关闭软件。</p>
+    </div>
+  </div>
+  <div id="inputModal" class="modal-mask" aria-hidden="true">
+    <div class="modal small-modal">
+      <div class="modal-head">
+        <h2 id="inputModalTitle">输入</h2>
+        <button id="closeInputModalBtn" class="icon-btn" type="button">×</button>
+      </div>
+      <textarea id="inputModalText" placeholder="一行一个"></textarea>
+      <div class="modal-actions">
+        <button id="cancelInputModalBtn" type="button">取消</button>
+        <button id="confirmInputModalBtn" class="primary" type="button">确定</button>
+      </div>
+    </div>
+  </div>
+  <div id="treeMenu" class="context-menu">
+    <button id="editTreeItemBtn" type="button">编辑</button>
+    <button id="deleteTreeItemBtn" type="button">删除</button>
+  </div>
+  <div id="statModal" class="modal-mask" aria-hidden="true">
+    <div class="modal small-modal">
+      <div class="modal-head">
+        <h2 id="statModalTitle">统计筛选</h2>
+        <button id="closeStatModalBtn" class="icon-btn" type="button">×</button>
+      </div>
+      <div class="date-grid">
+        <div>
+          <label>开始时间</label>
+          <input id="statStartDate" type="date">
+        </div>
+        <div>
+          <label>结束时间</label>
+          <input id="statEndDate" type="date">
+        </div>
+      </div>
+      <div class="field settlement-field">
+        <label>订单结算状态</label>
+        <select id="statSettlementStatus"></select>
+      </div>
+      <div class="field settlement-field country-filter-field">
+        <label>国家</label>
+        <select id="statCountry"></select>
+      </div>
+      <div class="modal-actions">
+        <button id="cancelStatModalBtn" type="button">取消</button>
+        <button id="confirmStatModalBtn" class="primary" type="button">统计</button>
+      </div>
+    </div>
+  </div>
+  <div id="statsProgressModal" class="modal-mask stats-progress-mask" aria-hidden="true">
+    <div class="modal stats-progress-modal" role="dialog" aria-modal="true" aria-labelledby="statsProgressTitle">
+      <div class="modal-head">
+        <div>
+          <h2 id="statsProgressTitle">正在统计</h2>
+          <p id="statsProgressSubTitle" class="progress-subtitle">正在计算筛选结果</p>
+        </div>
+      </div>
+      <div class="progress-bar"><span></span></div>
+      <div class="progress-phase">请稍候</div>
+      <p id="statsProgressMessage" class="progress-message">大量账号统计会自动优化查询，请不要关闭软件。</p>
+    </div>
+  </div>
+  <div id="updateModal" class="modal-mask" aria-hidden="true">
+    <div class="modal small-modal" role="dialog" aria-modal="true" aria-labelledby="updateModalTitle">
+      <div class="modal-head">
+        <h2 id="updateModalTitle">软件更新</h2>
+        <button id="closeUpdateModalBtn" class="icon-btn" type="button">×</button>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <div style="font-size:13px;color:#334155;">
+          当前版本：<strong id="updateCurrentVer">-</strong>
+          <span style="margin-left:14px;">最新版本：<strong id="updateLatestVer">-</strong></span>
+        </div>
+        <div id="updateStatusText" style="font-size:12.5px;color:#475569;line-height:1.5;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:8px 10px;max-height:140px;overflow:auto;white-space:pre-wrap;">正在准备检查更新...</div>
+        <div>
+          <label style="font-size:12px;color:#64748b;">更新源（GitHub 仓库如 owner/repo，或 version.json 地址）</label>
+          <div style="display:flex;gap:6px;margin-top:4px;">
+            <input id="updateSourceInput" type="text" placeholder="例如：owner/billing-system 或 https://.../version.json">
+            <button id="saveUpdateSourceBtn" type="button">保存并检查</button>
+          </div>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button id="cancelUpdateModalBtn" type="button">关闭</button>
+        <button id="applyUpdateBtn" class="primary" type="button" disabled>立即更新并重启</button>
+      </div>
+    </div>
+  </div>
+  <div id="confirmModal" class="modal-mask" aria-hidden="true">
+    <div class="modal confirm-modal" role="dialog" aria-modal="true" aria-labelledby="confirmModalTitle">
+      <div class="modal-head">
+        <div class="confirm-title">
+          <span class="confirm-mark">!</span>
+          <h2 id="confirmModalTitle">确认操作</h2>
+        </div>
+        <button id="closeConfirmModalBtn" class="icon-btn" type="button">×</button>
+      </div>
+      <div class="confirm-content">
+        <p id="confirmModalMessage"></p>
+        <div id="confirmModalDetail" class="confirm-detail"></div>
+      </div>
+      <div class="modal-actions">
+        <button id="cancelConfirmModalBtn" type="button">取消</button>
+        <button id="confirmConfirmModalBtn" class="danger-solid" type="button">确定</button>
+      </div>
+    </div>
+  </div>
+  </div>
+  <script src="/static/app.js?v=20260610-optional-settle-inputs"></script>
+</body>
+</html>

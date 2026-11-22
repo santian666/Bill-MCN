@@ -1,0 +1,22 @@
+# 运行数据与日志
+data/
+logs/
+debug/
+
+# 编译产物与可执行文件
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+code/gui/build/bin/
+
+# 前端依赖与构建缓存
+node_modules/
+code/gui/frontend/dist/
+
+# 临时文件
+*.tmp
+*.bak
+.DS_Store
+Thumbs.db
