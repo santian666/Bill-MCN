@@ -13,6 +13,7 @@ import (
 
 func main() {
 	initRunLogger()
+	cleanupOldUpdateArtifacts()
 	app := NewApp()
 	handler, store, err := newBillingHandler()
 	if err != nil {

@@ -14,6 +14,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 )
 
@@ -188,17 +189,20 @@ func (s *Store) handleUpdateApply(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := scheduleExeReplaceAndRestart(os.Getpid(), exePath, newExePath); err != nil {
+	if err := performAtomicInPlaceUpdate(exePath, newExePath); err != nil {
 		_ = os.Remove(newExePath)
-		writeError(w, http.StatusInternalServerError, "启动更新程序失败："+err.Error())
+		writeError(w, http.StatusInternalServerError, "替换程序失败："+err.Error())
 		return
 	}
 
-	writeJSON(w, map[string]any{"ok": true, "message": "更新已下载，正在覆盖并重启程序"})
+	writeJSON(w, map[string]any{"ok": true, "message": "更新已下载，正在重启新版本..."})
 	go func() {
-		time.Sleep(400 * time.Millisecond)
+		time.Sleep(250 * time.Millisecond)
 		if s.db != nil {
 			_ = s.db.Close()
+		}
+		if err := launchNewAppProcess(exePath); err != nil {
+			log.Printf("ERROR 启动新版本失败：%v", err)
 		}
 		os.Exit(0)
 	}()
@@ -226,6 +230,11 @@ func fetchGitHubLatestRelease(repo string) (UpdateCheckResult, error) {
 		return UpdateCheckResult{}, fmt.Errorf("连接 GitHub 失败：%w", err)
 	}
 	defer resp.Body.Close()
+	if resp.StatusCode == http.StatusNotFound {
+		return UpdateCheckResult{
+			LatestVersion: appVersion,
+		}, nil
+	}
 	if resp.StatusCode != http.StatusOK {
 		return UpdateCheckResult{}, fmt.Errorf("检查更新失败（HTTP %d）", resp.StatusCode)
 	}
@@ -236,12 +245,18 @@ func fetchGitHubLatestRelease(repo string) (UpdateCheckResult, error) {
 	downloadURL := ""
 	for _, asset := range rel.Assets {
 		lower := strings.ToLower(asset.Name)
-		if strings.HasSuffix(lower, ".exe") {
+		if strings.HasSuffix(lower, ".zip") && (strings.Contains(lower, "windows") || strings.Contains(lower, "amd64") || strings.Contains(lower, "bill")) {
 			downloadURL = asset.BrowserDownloadURL
 			break
 		}
-		if strings.HasSuffix(lower, ".zip") && downloadURL == "" {
-			downloadURL = asset.BrowserDownloadURL
+	}
+	if downloadURL == "" {
+		for _, asset := range rel.Assets {
+			lower := strings.ToLower(asset.Name)
+			if strings.HasSuffix(lower, ".zip") || strings.HasSuffix(lower, ".exe") {
+				downloadURL = asset.BrowserDownloadURL
+				break
+			}
 		}
 	}
 	return UpdateCheckResult{
@@ -371,30 +386,66 @@ func validateWindowsExe(path string) error {
 	return nil
 }
 
-func scheduleExeReplaceAndRestart(pid int, currentExe, newExe string) error {
-	scriptPath := filepath.Join(os.TempDir(), fmt.Sprintf("billing_update_%d.ps1", pid))
-	ps := fmt.Sprintf(`$ErrorActionPreference = 'Stop'
-$pidToWait = %d
-$target = '%s'
-$source = '%s'
-for ($i = 0; $i -lt 60; $i++) {
-  if (-not (Get-Process -Id $pidToWait -ErrorAction SilentlyContinue)) { break }
-  Start-Sleep -Milliseconds 250
-}
-Start-Sleep -Milliseconds 300
-Move-Item -Force -LiteralPath $source -Destination $target
-Start-Process -FilePath $target -WorkingDirectory (Split-Path -Parent $target)
-Remove-Item -Force -LiteralPath $MyInvocation.MyCommand.Path -ErrorAction SilentlyContinue
-`, pid, strings.ReplaceAll(currentExe, "'", "''"), strings.ReplaceAll(newExe, "'", "''"))
-	if err := os.WriteFile(scriptPath, []byte(ps), 0644); err != nil {
-		return err
+// performAtomicInPlaceUpdate 参照 SanTian-Singbox：利用 NTFS 允许重命名运行中 exe 的特性原地替换主程序。
+func performAtomicInPlaceUpdate(exePath, newExePath string) error {
+	oldExe := exePath + ".old"
+	_ = os.Remove(oldExe)
+
+	var renameErr error
+	for i := 0; i < 5; i++ {
+		renameErr = os.Rename(exePath, oldExe)
+		if renameErr == nil {
+			break
+		}
+		time.Sleep(200 * time.Millisecond)
 	}
-	cmd := exec.Command("powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-WindowStyle", "Hidden", "-File", scriptPath)
-	if err := cmd.Start(); err != nil {
-		log.Printf("ERROR 启动更新脚本失败：%v", err)
-		return err
+	if renameErr != nil {
+		return fmt.Errorf("重命名旧主程序失败（可能被安全软件占用）：%w", renameErr)
 	}
+
+	if err := copyFile(newExePath, exePath); err != nil {
+		_ = os.Rename(oldExe, exePath)
+		return fmt.Errorf("写入新主程序失败：%w", err)
+	}
+	_ = os.Remove(newExePath)
 	return nil
+}
+
+func copyFile(srcPath, dstPath string) error {
+	src, err := os.Open(srcPath)
+	if err != nil {
+		return err
+	}
+	defer src.Close()
+	dst, err := os.OpenFile(dstPath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0755)
+	if err != nil {
+		return err
+	}
+	_, copyErr := io.Copy(dst, src)
+	closeErr := dst.Close()
+	if copyErr != nil {
+		return copyErr
+	}
+	return closeErr
+}
+
+func launchNewAppProcess(exePath string) error {
+	cmd := exec.Command(exePath)
+	cmd.Dir = filepath.Dir(exePath)
+	cmd.SysProcAttr = &syscall.SysProcAttr{
+		CreationFlags: syscall.CREATE_NEW_PROCESS_GROUP,
+	}
+	return cmd.Start()
+}
+
+func cleanupOldUpdateArtifacts() {
+	exePath, err := os.Executable()
+	if err != nil || exePath == "" {
+		return
+	}
+	_ = os.Remove(exePath + ".old")
+	_ = os.Remove(exePath + ".new")
+	_ = os.Remove(exePath + ".new.dl")
 }
 
 func compareSemver(a, b string) int {

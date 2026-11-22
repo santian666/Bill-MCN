@@ -10,6 +10,7 @@ debug/
 *.so
 *.dylib
 code/gui/build/bin/
+code/gui/dist/
 
 # 前端依赖与构建缓存
 node_modules/

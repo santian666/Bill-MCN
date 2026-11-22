@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"testing"
 )
 
@@ -38,5 +40,31 @@ func TestFetchUpdateManifest(t *testing.T) {
 	}
 	if res.LatestVersion != "0.2.0" || res.DownloadURL != "https://example.com/app.exe" {
 		t.Fatalf("unexpected manifest result: %+v", res)
+	}
+}
+
+func TestPerformAtomicInPlaceUpdate(t *testing.T) {
+	dir := t.TempDir()
+	curExe := filepath.Join(dir, "app.exe")
+	newExe := filepath.Join(dir, "app.exe.new")
+	if err := os.WriteFile(curExe, []byte("old-binary"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(newExe, []byte("new-binary"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := performAtomicInPlaceUpdate(curExe, newExe); err != nil {
+		t.Fatal(err)
+	}
+	got, err := os.ReadFile(curExe)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != "new-binary" {
+		t.Fatalf("expected new-binary, got %q", string(got))
+	}
+	oldBytes, err := os.ReadFile(curExe + ".old")
+	if err != nil || string(oldBytes) != "old-binary" {
+		t.Fatalf("expected .old backup with old-binary, err=%v got=%q", err, string(oldBytes))
 	}
 }
