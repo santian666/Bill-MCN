@@ -1961,7 +1961,7 @@ document.addEventListener("DOMContentLoaded", () => {
 async function openUpdateModal() {
   const modal = $("updateModal");
   if (!modal) return;
-  modal.classList.add("open");
+  modal.classList.add("show");
   modal.setAttribute("aria-hidden", "false");
   await runUpdateCheck();
 }
@@ -1969,7 +1969,7 @@ async function openUpdateModal() {
 function closeUpdateModal() {
   const modal = $("updateModal");
   if (!modal) return;
-  modal.classList.remove("open");
+  modal.classList.remove("show");
   modal.setAttribute("aria-hidden", "true");
 }
 
