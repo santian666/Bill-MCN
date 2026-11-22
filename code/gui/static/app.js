@@ -1979,7 +1979,7 @@ async function saveAndCheckUpdate() {
     ? (raw.includes("github.com/") && !raw.endsWith(".json") ? { repo: raw, url: "" } : { repo: "", url: raw })
     : { repo: raw, url: "" };
   try {
-    await request("/api/update/config", {
+    await api("/api/update/config", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload)
@@ -1997,7 +1997,7 @@ async function runUpdateCheck() {
   if (applyBtn) applyBtn.disabled = true;
   if (statusEl) statusEl.textContent = "正在检查更新，请稍候...";
   try {
-    const data = await request("/api/update/check");
+    const data = await api("/api/update/check");
     if ($("updateCurrentVer")) $("updateCurrentVer").textContent = "v" + (data.currentVersion || "-");
     if ($("updateLatestVer")) $("updateLatestVer").textContent = data.latestVersion ? "v" + data.latestVersion : "-";
     if ($("updateSourceInput") && !$("updateSourceInput").value) {
@@ -2029,7 +2029,7 @@ async function applySoftwareUpdate() {
   }
   if (statusEl) statusEl.textContent = "正在下载新版程序并准备覆盖旧版，完成后将自动重启...";
   try {
-    const res = await request("/api/update/apply", {
+    const res = await api("/api/update/apply", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ downloadUrl: latestUpdateDownloadURL })
