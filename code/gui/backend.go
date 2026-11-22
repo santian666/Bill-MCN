@@ -29,7 +29,7 @@ var embeddedFiles embed.FS
 var countries = []string{"新加坡", "泰国", "马来西亚", "菲律宾", "越南", "日本", "美国", "巴西", "墨西哥", "英国", "德国", "法国", "意大利", "西班牙"}
 var settlementStatuses = []string{"客户未付款", "待确认", "已结算", "机构未付款", "不符合条件", "已冻结"}
 
-const appVersion = "0.1.8"
+const appVersion = "0.1.9"
 
 type Store struct {
 	mu             sync.Mutex
